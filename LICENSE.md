@@ -1,6 +1,6 @@
 Copyright Casey Rodarmor
 
-"This" means everything in the repo at github.com/casey/timestamp.
+"This" means everything at (github.com/casey/timestamp).
 
 Anyone may do anything with this.
 
