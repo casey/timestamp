@@ -1,7 +1,7 @@
 timestamp
 ---------
 
-A simple timestamp service.
+A timestamp service.
 
 [Test instance here.](http://rodarmor-timestamp.appspot.com)
 
