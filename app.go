@@ -45,11 +45,13 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
     w.WriteHeader(status.number())
 
-    if body == "" && status.bodyAllowed(r.Method) {
-      body = fmt.Sprintf("%v %v", status.number(), status.text())
+    if status.mustNotIncludeMessageBody(r.Method) {
+      fmt.Fprintf(w, "\n", body)
+    } else if body == "" {
+      fmt.Fprintf(w, "%v %v\n", status.number(), status.text())
+    } else {
+      fmt.Fprintf(w, "%v\n", body)
     }
-
-    fmt.Fprintln(w, body)
   }()
 
   ensure := func(condition bool, errorCode int) {

@@ -10,19 +10,12 @@ func (status statusCode) redirection() bool   { return status >= 300 && status <
 func (status statusCode) badRequest() bool    { return status >= 400 && status < 500 }
 func (status statusCode) serverError() bool   { return status >= 500 && status < 600 }
 
-func (status statusCode) bodyAllowed(method string) bool {
-  switch status {
-  case http.StatusNoContent:
-    return false
-  case http.StatusResetContent:
-    return false
-  case http.StatusNotModified:
-    return false
-  case http.StatusOK:
-    return method != "HEAD"
-  default:
-    return !status.informational()
-  }
+func (status statusCode) mustNotIncludeMessageBody(method string) bool {
+  return status.informational() ||
+    status == http.StatusNoContent ||
+    status == http.StatusResetContent ||
+    status == http.StatusNotModified ||
+    status == http.StatusOK && method == "HEAD"
 }
 
 func (status statusCode) text() string {
