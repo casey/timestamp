@@ -38,5 +38,9 @@ func putTimestamp(c appengine.Context, key string) (*time.Time, error) {
   datastoreKey := makeDatastoreKey(c, key)
   entity := entity{time.Now()}
   _, e := datastore.Put(c, datastoreKey, &entity)
-  return &entity.Time, e
+  if e == nil {
+    return &entity.Time, nil
+  } else {
+    return nil, e
+  }
 }
