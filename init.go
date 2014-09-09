@@ -33,7 +33,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(status.number())
 
     if status.mustNotIncludeMessageBody(r.Method) {
-      fmt.Fprint(w, "\n", body)
+      fmt.Fprint(w, "\n")
     } else if body == "" {
       fmt.Fprintf(w, "%v %v\n", status.number(), status.text())
     } else {
@@ -85,5 +85,5 @@ func handler(w http.ResponseWriter, r *http.Request) {
     return nil
   }, nil))
 
-  body = fmt.Sprintf("%f", time)
+  body = fmt.Sprintf("%f", float64(time.UnixNano())/1e9)
 }

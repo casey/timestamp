@@ -11,3 +11,9 @@ format:
 lint:
 	go vet
 	@golint | sed "/don't use underscores/d"
+
+test:
+	./test http://localhost:8080
+
+test-deployed:
+	./test http://rodarmor-timestamp.appspot.com

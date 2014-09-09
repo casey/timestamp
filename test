@@ -1,0 +1,46 @@
+#!/usr/bin/env python
+
+import sys, time, uuid, subprocess
+
+endpoint = sys.argv[1]
+now      = time.time()
+key      = "test-" + uuid.uuid1().hex
+
+def run(cmd):
+  p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+  out, err = p.communicate()
+  try:
+    return float(out.strip())
+  except:
+    return 0
+
+def put():
+  return run('curl -X PUT %s/%s' % (endpoint, key))
+
+def get():
+  return run('curl -X GET %s/%s' % (endpoint, key))
+
+def die(msg):
+  sys.stdout.write("%s\n" % msg)
+  sys.exit(1)
+
+def test(msg):
+  sys.stdout.write(msg + ' ')
+
+def ok():
+  sys.stdout.write('ok\n')
+
+test('testing first get fails...')
+get() == 0 or die('first get succeeded')
+ok()
+
+test('testing new timestamps are accurate...')
+timestamp = put()
+dt = abs(timestamp - now)
+if dt > 5:
+  die("new timestamp not accurate: %s seconds off" % dt)
+ok()
+
+test('testing new timestamps are persistant...')
+get() == timestamp or die('second get produced different timestamp')
+ok()
