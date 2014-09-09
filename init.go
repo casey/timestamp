@@ -21,7 +21,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
   headers["Warranty"] = `THIS IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND EXPRESS OR IMPLIED.`
   headers["Content-Type"] = `text/plain; charset="utf-8"`
 
-	defer func() {
+  defer func() {
     if e := recover(); e != nil {
       c.Errorf("handler: recovered from panic: %v", e)
     }
@@ -39,51 +39,51 @@ func handler(w http.ResponseWriter, r *http.Request) {
     } else {
       fmt.Fprintf(w, "%v\n", body)
     }
-	}()
+  }()
 
-	ensure := func(condition bool, errorCode int) {
+  ensure := func(condition bool, errorCode int) {
     if !condition {
       status = statusCode(errorCode)
       panic("ensure condition false")
     }
-	}
+  }
 
-	check := func(e error) {
+  check := func(e error) {
     if e != nil {
       status = http.StatusInternalServerError
       panic(e)
     }
-	}
+  }
 
-	get := r.Method == "GET"
+  get := r.Method == "GET"
 
-	ensure(get || r.Method == "PUT", http.StatusMethodNotAllowed)
+  ensure(get || r.Method == "PUT", http.StatusMethodNotAllowed)
 
-	match := path_re.FindStringSubmatch(r.URL.Path)
+  match := path_re.FindStringSubmatch(r.URL.Path)
 
-	ensure(len(match) > 0, http.StatusForbidden)
+  ensure(len(match) > 0, http.StatusForbidden)
 
-	key := match[1]
-	var time time.Time
+  key := match[1]
+  var time time.Time
 
-	check(datastore.RunInTransaction(c, func(c appengine.Context) error {
-		pointer, e := getTimestamp(c, key)
-		check(e)
+  check(datastore.RunInTransaction(c, func(c appengine.Context) error {
+    pointer, e := getTimestamp(c, key)
+    check(e)
 
-		if get {
-			ensure(pointer != nil, http.StatusNotFound)
-			status = http.StatusOK
-		} else if pointer == nil {
-			pointer, e = putTimestamp(c, key)
-			check(e)
-			status = http.StatusCreated
-		} else {
-			status = http.StatusOK
-		}
+    if get {
+      ensure(pointer != nil, http.StatusNotFound)
+      status = http.StatusOK
+    } else if pointer == nil {
+      pointer, e = putTimestamp(c, key)
+      check(e)
+      status = http.StatusCreated
+    } else {
+      status = http.StatusOK
+    }
 
     time = *pointer
-		return nil
-	}, nil))
+    return nil
+  }, nil))
 
-	body = fmt.Sprintf("%f", time)
+  body = fmt.Sprintf("%f", time)
 }
