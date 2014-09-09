@@ -4,11 +4,11 @@ serve:
 deploy:
 	appcfg.py --oauth2 update .
 
-format:
-	gofmt -w -tabs=false -tabwidth=2 *.go
-
 vet:
 	go vet
 
+format:
+	gofmt -w *.go
+
 lint:
-	golint
+	@golint | sed "/don't use underscores/d"

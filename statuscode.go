@@ -11,21 +11,21 @@ func (status statusCode) badRequest() bool    { return status >= 400 && status <
 func (status statusCode) serverError() bool   { return status >= 500 && status < 600 }
 
 func (status statusCode) mustNotIncludeMessageBody(method string) bool {
-  return status.informational() ||
-    status == http.StatusNoContent ||
-    status == http.StatusResetContent ||
-    status == http.StatusNotModified ||
-    status == http.StatusOK && method == "HEAD"
+	return status.informational() ||
+		status == http.StatusNoContent ||
+		status == http.StatusResetContent ||
+		status == http.StatusNotModified ||
+		status == http.StatusOK && method == "HEAD"
 }
 
 func (status statusCode) text() string {
-  if text := http.StatusText(status.number()); text != "" {
-    return text
-  }
+	if text := http.StatusText(status.number()); text != "" {
+		return text
+	}
 
-  return "Mystery Status Code"
+	return "Mystery Status Code"
 }
 
 func (status statusCode) number() int {
-  return int(status)
+	return int(status)
 }
