@@ -1,5 +1,3 @@
-Copyright Casey Rodarmor
-
 "This" means everything in the repository at github.com/casey/timestamp.
 
 Anyone may do anything with this.
