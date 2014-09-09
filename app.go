@@ -11,7 +11,7 @@ import "time"
 
 var path_re = regexp.MustCompile(`^/([a-zA-Z0-9_.-]*)$`)
 
-type Entity struct {
+type entity struct {
   Timestamp time.Time
 }
 
@@ -46,7 +46,7 @@ func handler(w http.ResponseWriter, r *http.Request) {
     w.WriteHeader(status.number())
 
     if status.mustNotIncludeMessageBody(r.Method) {
-      fmt.Fprintf(w, "\n", body)
+      fmt.Fprint(w, "\n", body)
     } else if body == "" {
       fmt.Fprintf(w, "%v %v\n", status.number(), status.text())
     } else {
@@ -65,15 +65,15 @@ func handler(w http.ResponseWriter, r *http.Request) {
 
   ensure(len(match) > 0, http.StatusForbidden)
 
-  key := datastore.NewKey(c, "Entity", stringID(match[1]), 0, nil)
-  query := datastore.NewQuery("Entity").KeysOnly().Filter("__key__ =", key)
+  key := datastore.NewKey(c, "timestamp", stringID(match[1]), 0, nil)
+  query := datastore.NewQuery("timestamp").KeysOnly().Filter("__key__ =", key)
   count, e := query.Count(c)
 
   ensure(e == nil, http.StatusInternalServerError)
 
   stamped := count > 0
 
-  entity := Entity{time.Now()}
+  entity := entity{time.Now()}
 
   switch r.Method {
   case "GET":
