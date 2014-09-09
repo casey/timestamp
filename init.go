@@ -64,25 +64,26 @@ func handler(w http.ResponseWriter, r *http.Request) {
 	ensure(len(match) > 0, http.StatusForbidden)
 
 	key := match[1]
-	var time *time.Time
+	var time time.Time
 
 	check(datastore.RunInTransaction(c, func(c appengine.Context) error {
-		time, e := getTimestamp(c, key)
+		pointer, e := getTimestamp(c, key)
 		check(e)
 
 		if get {
-			ensure(time != nil, http.StatusNotFound)
+			ensure(pointer != nil, http.StatusNotFound)
 			status = http.StatusOK
-		} else if time == nil {
-			time, e = putTimestamp(c, key)
+		} else if pointer == nil {
+			pointer, e = putTimestamp(c, key)
 			check(e)
 			status = http.StatusCreated
 		} else {
 			status = http.StatusOK
 		}
 
+    time = *pointer
 		return nil
 	}, nil))
 
-	body = fmt.Sprintf("%f", *time)
+	body = fmt.Sprintf("%f", time)
 }
