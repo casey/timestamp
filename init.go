@@ -10,49 +10,49 @@ import "time"
 var path_re = regexp.MustCompile(`^/([a-zA-Z0-9_.-]*)$`)
 
 func init() {
-	http.HandleFunc("/", handler)
+  http.HandleFunc("/", handler)
 }
 
 func handler(w http.ResponseWriter, r *http.Request) {
-	c := appengine.NewContext(r)
-	status := statusCode(http.StatusInternalServerError)
-	body := ""
-	headers := make(map[string]string)
-	headers["Warranty"] = `THIS IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND EXPRESS OR IMPLIED.`
-	headers["Content-Type"] = `text/plain; charset="utf-8"`
+  c := appengine.NewContext(r)
+  status := statusCode(http.StatusInternalServerError)
+  body := ""
+  headers := make(map[string]string)
+  headers["Warranty"] = `THIS IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND EXPRESS OR IMPLIED.`
+  headers["Content-Type"] = `text/plain; charset="utf-8"`
 
 	defer func() {
-		if e := recover(); e != nil {
-			c.Errorf("handler: recovered from panic: %v", e)
-		}
+    if e := recover(); e != nil {
+      c.Errorf("handler: recovered from panic: %v", e)
+    }
 
-		for name, value := range headers {
-			w.Header().Set(name, value)
-		}
+    for name, value := range headers {
+      w.Header().Set(name, value)
+    }
 
-		w.WriteHeader(status.number())
+    w.WriteHeader(status.number())
 
-		if status.mustNotIncludeMessageBody(r.Method) {
-			fmt.Fprint(w, "\n", body)
-		} else if body == "" {
-			fmt.Fprintf(w, "%v %v\n", status.number(), status.text())
-		} else {
-			fmt.Fprintf(w, "%v\n", body)
-		}
+    if status.mustNotIncludeMessageBody(r.Method) {
+      fmt.Fprint(w, "\n", body)
+    } else if body == "" {
+      fmt.Fprintf(w, "%v %v\n", status.number(), status.text())
+    } else {
+      fmt.Fprintf(w, "%v\n", body)
+    }
 	}()
 
 	ensure := func(condition bool, errorCode int) {
-		if !condition {
-			status = statusCode(errorCode)
-			panic("ensure condition false")
-		}
+    if !condition {
+      status = statusCode(errorCode)
+      panic("ensure condition false")
+    }
 	}
 
 	check := func(e error) {
-		if e != nil {
-			status = http.StatusInternalServerError
-			panic(e)
-		}
+    if e != nil {
+      status = http.StatusInternalServerError
+      panic(e)
+    }
 	}
 
 	get := r.Method == "GET"

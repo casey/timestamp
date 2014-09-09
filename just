@@ -7,8 +7,5 @@ deploy:
 vet:
 	go vet
 
-format:
-	gofmt -w *.go
-
 lint:
 	@golint | sed "/don't use underscores/d"
