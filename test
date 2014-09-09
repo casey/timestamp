@@ -1,46 +1,48 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3.3
 
-import sys, time, uuid, subprocess
+import sys, time, uuid, requests
 
 endpoint = sys.argv[1]
 now      = time.time()
 key      = "test-" + uuid.uuid1().hex
+url      = '%s/%s' % (endpoint, key)
 
-def run(cmd):
-  p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-  out, err = p.communicate()
-  try:
-    return float(out.strip())
-  except:
-    return 0
-
-def put():
-  return run('curl -X PUT %s/%s' % (endpoint, key))
-
-def get():
-  return run('curl -X GET %s/%s' % (endpoint, key))
+print("testing with url %s..." % url)
 
 def die(msg):
-  sys.stdout.write("%s\n" % msg)
+  sys.stdout.write("ERROR: %s\n" % msg)
   sys.exit(1)
 
-def test(msg):
-  sys.stdout.write(msg + ' ')
+def ok(msg):
+  sys.stdout.write("OK: %s\n" % msg)
 
-def ok():
-  sys.stdout.write('ok\n')
+def parse(s):
+  try:
+    return float(s.strip())
+  except:
+    die('could not parse timestamp: %s' % s)
 
-test('testing first get fails...')
-get() == 0 or die('first get succeeded')
-ok()
+# test that new keys 404
+r = requests.get(url)
+r.status_code == 404 or die('get with new key returned status code: %s' % r.status_code)
+ok('get with new key 404ed as expected')
 
-test('testing new timestamps are accurate...')
-timestamp = put()
-dt = abs(timestamp - now)
-if dt > 5:
-  die("new timestamp not accurate: %s seconds off" % dt)
-ok()
+r = requests.put(url)
+r.status_code == 201 or die('put with new key returned status code: %s' % r.status_code)
+ok('new key created successfully')
+t = parse(r.text)
 
-test('testing new timestamps are persistant...')
-get() == timestamp or die('second get produced different timestamp')
-ok()
+dt = abs(t - now)
+
+if dt > 10:
+  die('inaccurate timestamp: %s seconds off' % dt)
+ok('new timestamp accurate: %s seconds off' % dt)
+
+r = requests.get(url)
+r.status_code == 200 or die('tried to retrieve created timestamp but got status code: %s' % r.status_code)
+retrieved = parse(r.text)
+dt = abs(t - retrieved)
+
+if dt > 0.001:
+  die("retrieved timestamp didn't match: %s seconds off" % dt)
+ok('retrieved timestamp matches')
