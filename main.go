@@ -2,25 +2,12 @@ package app
 
 import "appengine"
 import "appengine/datastore"
-import "crypto/sha256"
-import "encoding/hex"
 import "fmt"
 import "net/http"
 import "regexp"
 import "time"
 
 var path_re = regexp.MustCompile(`^/([a-zA-Z0-9_.-]*)$`)
-
-type entity struct {
-  Timestamp time.Time
-}
-
-func stringID(input string) string {
-  sha := sha256.New()
-  sha.Write([]byte(input))
-  sum := sha.Sum(nil)
-  return hex.EncodeToString(sum)
-}
 
 func init() {
   http.HandleFunc("/", handler)
@@ -57,43 +44,45 @@ func handler(w http.ResponseWriter, r *http.Request) {
   ensure := func(condition bool, errorCode int) {
     if !condition {
       status = statusCode(errorCode)
-      panic("ensure failed")
+      panic("ensure condition false")
     }
   }
+
+  check := func(e error) {
+    if e != nil {
+      status = http.StatusInternalServerError
+      panic(e)
+    }
+  }
+
+  get := r.Method == "GET"
+
+  ensure(get || r.Method == "PUT", http.StatusMethodNotAllowed)
 
   match := path_re.FindStringSubmatch(r.URL.Path)
 
   ensure(len(match) > 0, http.StatusForbidden)
 
-  key := datastore.NewKey(c, "timestamp", stringID(match[1]), 0, nil)
-  query := datastore.NewQuery("timestamp").KeysOnly().Filter("__key__ =", key)
-  count, e := query.Count(c)
+  key := match[1]
+  var time *time.Time = nil
 
-  ensure(e == nil, http.StatusInternalServerError)
+  check(datastore.RunInTransaction(c, func(c appengine.Context) error {
+    time, e := getTimestamp(c, key)
+    check(e)
 
-  stamped := count > 0
-
-  entity := entity{time.Now()}
-
-  switch r.Method {
-  case "GET":
-    ensure(stamped, http.StatusNotFound)
-    ensure(datastore.Get(c, key, &entity) == nil, http.StatusInternalServerError)
-    status = http.StatusOK
-  case "PUT":
-    if stamped {
-      ensure(datastore.Get(c, key, &entity) == nil, http.StatusInternalServerError)
+    if get {
+      ensure(time != nil, http.StatusNotFound)
       status = http.StatusOK
-    } else {
-      _, e := datastore.Put(c, key, &entity)
-      ensure(e == nil, http.StatusInternalServerError)
+    } else if time == nil {
+      time, e = putTimestamp(c, key)
+      check(e)
       status = http.StatusCreated
+    } else {
+      status = http.StatusOK
     }
-  default:
-    status = http.StatusMethodNotAllowed
-  }
 
-  if status.successful() {
-    body = fmt.Sprintf("%f", float64(entity.Timestamp.UnixNano())/1e9)
-  }
+    return nil
+  }, nil))
+
+  body = fmt.Sprintf("%f", *time)
 }
