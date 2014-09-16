@@ -1,89 +1,47 @@
 package app
 
 import "appengine"
-import "appengine/datastore"
 import "fmt"
 import "net/http"
 import "regexp"
 import "time"
 
-var path_re = regexp.MustCompile(`^/([a-zA-Z0-9_.-]*)$`)
+import . "flotilla"
 
-func init() {
-  http.HandleFunc("/", handler)
+var path_re = regexp.MustCompile(`^/(?P<key>[a-zA-Z0-9_.-]*)$`)
+
+func formatTime(t time.Time) string {
+  return fmt.Sprintf("%f", float64(t.UnixNano())/1e9)
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
+func init() {
+  Handle("/").Get(get).Put(put)
+}
+
+func get(r *http.Request) {
   c := appengine.NewContext(r)
-  status := statusCode(http.StatusInternalServerError)
-  body := ""
-  headers := make(map[string]string)
-  headers["Warranty"] = `THIS IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND EXPRESS OR IMPLIED.`
-  headers["Content-Type"] = `text/plain; charset="utf-8"`
+  match := Components(path_re, r.URL.Path)
+  Ensure(match != nil, http.StatusForbidden)
+  pointer, e := getTimestamp(c, match["key"])
+  Check(e)
+  Ensure(pointer != nil, http.StatusNotFound)
+  Body(http.StatusOK, formatTime(*pointer), "text/plain; charset=utf-8")
+}
 
-  defer func() {
-    if e := recover(); e != nil {
-      c.Errorf("handler: recovered from panic: %v", e)
-    }
+func put(r *http.Request) {
+  c := appengine.NewContext(r)
+  match := Components(path_re, r.URL.Path)
+  Ensure(match != nil, http.StatusForbidden)
+  key := match["key"]
 
-    for name, value := range headers {
-      w.Header().Set(name, value)
-    }
+  time, e := getTimestamp(c, key)
+  Check(e)
 
-    w.WriteHeader(status.number())
-
-    if status.mustNotIncludeMessageBody(r.Method) {
-      fmt.Fprint(w, "\n")
-    } else if body == "" {
-      fmt.Fprintf(w, "%v %v\n", status.number(), status.text())
-    } else {
-      fmt.Fprintf(w, "%v\n", body)
-    }
-  }()
-
-  ensure := func(condition bool, errorCode int) {
-    if !condition {
-      status = statusCode(errorCode)
-      panic("ensure condition false")
-    }
+  if time != nil {
+    Body(http.StatusOK, formatTime(*time), "text/plain; charset=utf-8")
   }
 
-  check := func(e error) {
-    if e != nil {
-      status = http.StatusInternalServerError
-      panic(e)
-    }
-  }
-
-  get := r.Method == "GET"
-
-  ensure(get || r.Method == "PUT", http.StatusMethodNotAllowed)
-
-  match := path_re.FindStringSubmatch(r.URL.Path)
-
-  ensure(len(match) > 0, http.StatusForbidden)
-
-  key := match[1]
-  var time time.Time
-
-  check(datastore.RunInTransaction(c, func(c appengine.Context) error {
-    pointer, e := getTimestamp(c, key)
-    check(e)
-
-    if get {
-      ensure(pointer != nil, http.StatusNotFound)
-      status = http.StatusOK
-    } else if pointer == nil {
-      pointer, e = putTimestamp(c, key)
-      check(e)
-      status = http.StatusCreated
-    } else {
-      status = http.StatusOK
-    }
-
-    time = *pointer
-    return nil
-  }, nil))
-
-  body = fmt.Sprintf("%f", float64(time.UnixNano())/1e9)
+  time, e = putTimestamp(c, key)
+  Check(e)
+  Body(http.StatusCreated, formatTime(*time), "text/plain; charset=utf-8")
 }
