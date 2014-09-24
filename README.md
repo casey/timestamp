@@ -1,7 +1,7 @@
 timestamp
 =========
 
-A timestamp service.
+Timestamping service
 
 [Test instance here.](http://rodarmor-timestamp.appspot.com)
 
